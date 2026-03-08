@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UIUC Twilight — Practice Attendance</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0b14;
+    --surface: #181327;
+    --surface2: #201a30;
+    --border: #2d2545;
+    --accent: #a855f7;
+    --accent-glow: rgba(168,85,247,0.25);
+    --green: #34d399;
+    --green-bg: #0a1f18;
+    --red: #fb7185;
+    --red-bg: #2a0f1a;
+    --yellow: #fbbf24;
+    --text: #cdc3e0;
+    --muted: #7e6ba1;
+    --bright: #f0eaff;
+    --display: 'Playfair Display', Georgia, serif;
+    --body: 'Outfit', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--body); min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; top: -120px; right: -80px; width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Animations */
+  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+  .fade-up { animation: fadeUp 0.35s ease both; }
+
+  /* Layout */
+  .wrap { max-width: 760px; margin: 0 auto; position: relative; z-index: 1; }
+
+  /* Header */
+  .header { padding: 32px 20px 0; }
+  .brand { display: flex; align-items: center; gap: 16; margin-bottom: 20; }
+  .logo-mark {
+    width: 58px; height: 58px; border-radius: 18px;
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 28px var(--accent-glow);
+    flex-shrink: 0;
+  }
+  .logo-mark svg { color: #fff; }
+  .team-name { font-family: var(--display); font-size: 30px; color: var(--bright); line-height: 1.1; }
+  .team-sub { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 3px; }
+  .header-stats {
+    display: flex; gap: 0; background: var(--surface); border-radius: 16px;
+    border: 1px solid var(--border); overflow: hidden; margin-bottom: 0;
+  }
+  .h-stat { flex:1; text-align:center; padding: 14px 12px; }
+  .h-stat + .h-stat { border-left: 1px solid var(--border); }
+  .h-stat-num { font-family: var(--display); font-size: 26px; color: var(--bright); display: block; line-height: 1; }
+  .h-stat-label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 3px; display: block; }
+
+  /* Nav */
+  .nav { display: flex; background: var(--surface); border-radius: 0 0 18px 18px; border-top: 1px solid var(--border); margin-bottom: 24px; overflow: hidden; }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4;
+    padding: 14px 6px 12px; background: none; border: none; border-bottom: 2px solid transparent;
+    color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer;
+    font-family: var(--body); transition: all .2s;
+  }
+  .nav-btn:hover { color: var(--accent); }
+  .nav-btn.active { color: var(--accent); background: rgba(168,85,247,0.06); border-bottom-color: var(--accent); }
+  .nav-btn svg { opacity: 0.4; transition: opacity .2s; }
+  .nav-btn.active svg { opacity: 1; }
+
+  /* Sections */
+  .page { display: none; padding: 0 20px 60px; }
+  .page.show { display: block; }
+  .sec-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18; flex-wrap: wrap; gap: 10; }
+  .sec-title { font-family: var(--display); font-size: 24px; color: var(--bright); }
+
+  /* Buttons */
+  .btn-accent {
+    display: inline-flex; align-items: center; gap: 6; padding: 9px 18px;
+    background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff;
+    border: none; border-radius: 12px; font-weight: 600; font-size: 13px;
+    cursor: pointer; font-family: var(--body);
+    box-shadow: 0 3px 14px var(--accent-glow); transition: transform .15s;
+  }
+  .btn-accent:hover { transform: translateY(-1px); }
+  .btn-green {
+    display: inline-flex; align-items: center; gap: 6; padding: 10px 22px;
+    background: #059669; color: #fff; border: none; border-radius: 12px;
+    font-weight: 600; font-size: 13px; cursor: pointer; font-family: var(--body);
+  }
+  .btn-danger-sm {
+    padding: 6px 14px; background: var(--red-bg); color: var(--red);
+    border: 1px solid #5e1a30; border-radius: 8px; font-weight: 600;
+    font-size: 12px; cursor: pointer; font-family: var(--body);
+  }
+  .btn-ghost-sm {
+    padding: 6px 14px; background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 8px; font-weight: 500;
+    font-size: 12px; cursor: pointer; font-family: var(--body);
+  }
+  .btn-icon {
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    background: none; border: none; color: #3e3556; cursor: pointer; border-radius: 8px;
+  }
+  .btn-icon:hover { color: var(--red); }
+  .btn-submit {
+    padding: 14px 32px; background: linear-gradient(135deg, #a855f7, #7c3aed);
+    color: #fff; border: none; border-radius: 14px; font-weight: 700; font-size: 15px;
+    cursor: pointer; font-family: var(--body); box-shadow: 0 4px 20px var(--accent-glow);
+    letter-spacing: 0.5px; transition: transform .15s;
+  }
+  .btn-submit:hover { transform: translateY(-1px); }
+
+  /* Form */
+  .form-card {
+    background: var(--surface); border-radius: 16px; padding: 18px;
+    border: 1px solid var(--border); margin-bottom: 18;
+  }
+  .form-row { display: flex; flex-wrap: wrap; gap: 10; align-items: center; }
+  .inp {
+    flex: 1 1 150px; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--bright); font-size: 14px; font-family: var(--body); outline: none;
+  }
+  .inp:focus { border-color: var(--accent); }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
+
+  /* Cards */
+  .card-list { display: flex; flex-direction: column; gap: 8; }
+  .card {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--surface); border-radius: 14px; padding: 13px 16px;
+    border: 1px solid var(--border); transition: border-color .2s;
+  }
+  .card-left { display: flex; align-items: center; gap: 12; }
+  .avatar {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; font-family: var(--display); flex-shrink: 0;
+  }
+  .card-name { font-weight: 600; color: var(--bright); font-size: 15px; }
+  .card-meta { display: flex; gap: 8; align-items: center; margin-top: 2px; flex-wrap: wrap; }
+  .pos-chip { font-size: 11px; font-weight: 600; color: var(--accent); background: rgba(168,85,247,0.12); padding: 2px 8px; border-radius: 6px; }
+  .confirm-grp { display: flex; gap: 6; }
+
+  /* Empty */
+  .empty-state { text-align: center; padding: 52px 24px; color: #3e3556; display: flex; flex-direction: column; align-items: center; gap: 12; font-size: 14px; }
+
+  /* Practice cards */
+  .practice-click { display: flex; align-items: center; gap: 14; cursor: pointer; flex: 1; }
+  .date-box {
+    font-family: var(--display); font-size: 14px; background: var(--bg); color: var(--muted);
+    padding: 7px 14px; border-radius: 10px; white-space: nowrap; text-align: center; min-width: 72px;
+  }
+  .badge-recorded { font-size: 11px; font-weight: 600; color: var(--green); background: rgba(52,211,153,0.1); padding: 2px 8px; border-radius: 6px; }
+  .badge-pending { font-size: 11px; font-weight: 700; color: var(--yellow); }
+
+  /* Check-in */
+  .sel-row { display: flex; align-items: center; gap: 12; margin-bottom: 18; }
+  .sel-label { font-weight: 600; color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .sel {
+    flex: 1; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--bright); font-size: 14px; font-family: var(--body); outline: none; cursor: pointer;
+  }
+  .hint { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
+  .check-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--surface); border-radius: 14px; padding: 12px 16px;
+    border: 2px solid var(--border); cursor: pointer; transition: all .2s;
+    user-select: none;
+  }
+  .check-row:hover { border-color: #3e3556; }
+  .check-row.checked { border-color: #059669; background: var(--green-bg); }
+  .check-box {
+    width: 28px; height: 28px; border-radius: 8px; border: 2px solid #3e3556;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: all .2s; margin-right: 12px;
+  }
+  .check-row.checked .check-box { background: #059669; border-color: #059669; color: #fff; }
+  .check-status { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: #3e3556; }
+  .check-row.checked .check-status { color: var(--green); }
+  .submit-bar {
+    display: flex; justify-content: space-between; align-items: center; margin-top: 20;
+    padding: 16px 20px; background: var(--surface); border-radius: 16px; border: 1px solid var(--border);
+  }
+  .submit-info { font-size: 14px; font-weight: 600; color: var(--muted); }
+
+  /* Reports */
+  .report-block { background: var(--surface); border-radius: 18px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 18; }
+  .report-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8; }
+  .report-title { font-family: var(--display); font-size: 18px; color: var(--bright); }
+  .report-date { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .sub-heading { font-family: var(--display); font-size: 18px; color: #c4b5fd; margin: 28px 0 14px; }
+  .split-grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .split-col { padding: 14px 18px; }
+  .split-col + .split-col { border-left: 1px solid var(--border); }
+  .split-header { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(--green); margin-bottom: 10px; display: flex; align-items: center; gap: 6; }
+  .split-header.absent { color: var(--red); }
+  .split-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .split-empty { color: #3e3556; font-size: 13px; font-style: italic; }
+  .split-row { display: flex; align-items: center; gap: 8; padding: 5px 0; font-size: 13px; font-weight: 500; color: var(--text); }
+  .split-row.absent-row { opacity: 0.6; }
+  .split-avatar {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; font-family: var(--display); flex-shrink: 0;
+  }
+  .split-avatar.absent-av { background: #3a1a30; }
+  .mini-pos { font-size: 10px; color: var(--muted); background: rgba(168,85,247,0.1); padding: 1px 6px; border-radius: 4px; margin-left: auto; }
+
+  /* Stats table */
+  .stats-tbl { overflow: hidden; }
+  .stats-head {
+    display: flex; padding: 12px 20px; background: var(--bg);
+    font-size: 11px; font-weight: 700; color: #3e3556; text-transform: uppercase; letter-spacing: 1.2px;
+  }
+  .stats-head span { flex: 1; text-align: center; }
+  .stats-head span:first-child { flex: 2; text-align: left; }
+  .stats-row {
+    display: flex; padding: 12px 20px; align-items: center; border-top: 1px solid #160f22; font-size: 14px;
+  }
+  .stats-row span { flex: 1; text-align: center; }
+  .stats-row span:first-child { flex: 2; text-align: left; font-weight: 600; color: var(--bright); }
+  .bar-track { display: inline-block; width: 44px; height: 5px; background: #160f22; border-radius: 3px; overflow: hidden; vertical-align: middle; margin-right: 8px; }
+  .bar-fill { display: block; height: 100%; border-radius: 3px; transition: width .5s ease; }
+  .rate-num { font-size: 12px; font-weight: 700; }
+
+  /* Password Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(10,7,18,0.85);
+    z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
+    padding: 32px; max-width: 380px; width: 90%; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal-box h3 { font-family: var(--display); font-size: 22px; color: var(--bright); margin-bottom: 6px; }
+  .modal-box p { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .modal-box .inp { width: 100%; margin-bottom: 14px; text-align: center; font-size: 16px; letter-spacing: 2px; }
+  .modal-error { color: var(--red); font-size: 12px; font-weight: 600; margin-bottom: 10px; display: none; }
+  .modal-btns { display: flex; gap: 10; justify-content: center; }
+
+  /* Lock banner */
+  .lock-banner {
+    background: rgba(168,85,247,0.06); border: 1px solid #2d2050; border-radius: 12px;
+    padding: 12px 18px; margin-bottom: 18px; display: flex; align-items: center; gap: 10;
+    font-size: 13px; color: var(--muted);
+  }
+  .lock-banner svg { flex-shrink: 0; color: var(--accent); }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    .team-name { font-size: 24px; }
+    .split-grid { grid-template-columns: 1fr; }
+    .split-col + .split-col { border-left: none; border-top: 1px solid var(--border); }
+    .submit-bar { flex-direction: column; gap: 12; }
+    .stats-row, .stats-head { font-size: 12px; padding: 10px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="brand">
+      <div class="logo-mark">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c2.5 2.8 4 6.2 4 10s-1.5 7.2-4 10c-2.5-2.8-4-6.2-4-10s1.5-7.2 4-10z"/>
+          <path d="M4.5 7h15M4.5 17h15" stroke-width="1" opacity="0.5"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="team-name">UIUC TWILIGHT</h1>
+        <p class="team-sub">Mandatory Practice Attendance</p>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="h-stat"><span class="h-stat-num" id="stat-members">0</span><span class="h-stat-label">Members</span></div>
+      <div class="h-stat"><span class="h-stat-num" id="stat-practices">0</span><span class="h-stat-label">Practices</span></div>
+    </div>
+  </header>
+
+  <!-- NAV -->
+  <nav class="nav" id="nav"></nav>
+
+  <!-- PAGES -->
+  <div class="page show" id="page-roster"></div>
+  <div class="page" id="page-practices"></div>
+  <div class="page" id="page-checkin"></div>
+  <div class="page" id="page-reports"></div>
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="modal-overlay" id="pw-modal">
+  <div class="modal-box">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="margin-bottom:10px;">
+      <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+    </svg>
+    <h3>Captain / Coach Access</h3>
+    <p>Enter the team password to make changes.</p>
+    <div class="modal-error" id="pw-error">Incorrect password. Try again.</div>
+    <input class="inp" type="password" id="pw-input" placeholder="Password" autocomplete="off">
+    <div class="modal-btns">
+      <button class="btn-ghost-sm" onclick="closePasswordModal()">Cancel</button>
+      <button class="btn-accent" onclick="submitPassword()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIG — CHANGE THIS PASSWORD
+// ═══════════════════════════════════════════
+const TEAM_PASSWORD = "twilight2026";
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let members = JSON.parse(localStorage.getItem("twi-members") || "[]");
+let practices = JSON.parse(localStorage.getItem("twi-practices") || "[]");
+let records = JSON.parse(localStorage.getItem("twi-records") || "{}");
+
+let currentPage = "roster";
+let activePractice = null;
+let checkedIn = {};
+let pendingAction = null; // callback after password success
+
+const save = () => {
+  localStorage.setItem("twi-members", JSON.stringify(members));
+  localStorage.setItem("twi-practices", JSON.stringify(practices));
+  localStorage.setItem("twi-records", JSON.stringify(records));
+};
+const uid = () => Math.random().toString(36).slice(2, 10);
+const fmtDate = d => new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+const fmtShort = d => new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
+const todayStr = () => new Date().toISOString().split("T")[0];
+
+// ═══════════════════════════════════════════
+// PASSWORD GATE
+// ═══════════════════════════════════════════
+function requirePassword(action) {
+  pendingAction = action;
+  document.getElementById("pw-modal").classList.add("show");
+  const inp = document.getElementById("pw-input");
+  inp.value = "";
+  document.getElementById("pw-error").style.display = "none";
+  setTimeout(() => inp.focus(), 100);
+}
+
+function submitPassword() {
+  const inp = document.getElementById("pw-input");
+  if (inp.value === TEAM_PASSWORD) {
+    closePasswordModal();
+    if (pendingAction) pendingAction();
+    pendingAction = null;
+  } else {
+    document.getElementById("pw-error").style.display = "block";
+    inp.value = "";
+    inp.focus();
+  }
+}
+
+function closePasswordModal() {
+  document.getElementById("pw-modal").classList.remove("show");
+  pendingAction = null;
+}
+
+// Enter key in password input
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("pw-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") submitPassword();
+  });
+});
+
+// ═══════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════
+const pages = [
+  { k:"roster", label:"Roster", icon:'<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>' },
+  { k:"practices", label:"Practices", icon:'<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' },
+  { k:"checkin", label:"Check-in", icon:'<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>' },
+  { k:"reports", label:"Reports", icon:'<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>' },
+];
+
+function renderNav() {
+  const nav = document.getElementById("nav");
+  nav.innerHTML = pages.map(p =>
+    `<button class="nav-btn${currentPage===p.k?' active':''}" onclick="goPage('${p.k}')">${p.icon}<span>${p.label}</span></button>`
+  ).join("");
+}
+
+function goPage(k) {
+  currentPage = k;
+  document.querySelectorAll(".page").forEach(el => el.classList.remove("show"));
+  document.getElementById("page-"+k).classList.add("show");
+  renderNav();
+  render();
+}
+
+// ═══════════════════════════════════════════
+// STATS HELPERS
+// ═══════════════════════════════════════════
+function getMemberStats(id) {
+  let present=0, total=0;
+  Object.values(records).forEach(r => { if(r[id]){total++; if(r[id]==="present") present++;} });
+  return { present, absent:total-present, total, rate: total ? Math.round(present/total*100) : 0 };
+}
+function getPracticeRecord(pid) {
+  const r = records[pid] || {};
+  const present=[], absent=[];
+  members.forEach(m => { if(r[m.id]==="present") present.push(m); else if(r[m.id]==="absent") absent.push(m); });
+  return { present, absent, taken: Object.keys(r).length > 0 };
+}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+function render() {
+  document.getElementById("stat-members").textContent = members.length;
+  document.getElementById("stat-practices").textContent = practices.length;
+
+  if (currentPage === "roster") renderRoster();
+  else if (currentPage === "practices") renderPractices();
+  else if (currentPage === "checkin") renderCheckin();
+  else if (currentPage === "reports") renderReports();
+}
+
+// ─── ROSTER ───
+function renderRoster() {
+  const el = document.getElementById("page-roster");
+  let html = `
+    <div class="sec-head">
+      <h2 class="sec-title">Team Roster</h2>
+      <button class="btn-accent" onclick="requirePassword(showAddMember)">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14m-7-7h14"/></svg>
+        Add Member
+      </button>
+    </div>
+    <div class="lock-banner">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Only captain &amp; coach can edit. Password required for changes.
+    </div>
+    <div id="add-member-form" style="display:none" class="form-card fade-up">
+      <div class="form-row">
+        <input class="inp" id="inp-name" placeholder="Full Name *">
+        <input class="inp" id="inp-num" placeholder="Jersey #" style="max-width:90px">
+        <input class="inp" id="inp-pos" placeholder="Position" style="max-width:110px">
+        <button class="btn-green" onclick="doAddMember()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+          Add
+        </button>
+      </div>
+    </div>
+  `;
+  if (members.length === 0) {
+    html += `<div class="empty-state fade-up"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>No members yet. Add your first player.</p></div>`;
+  } else {
+    html += `<div class="card-list">`;
+    members.forEach((m,i) => {
+      const st = getMemberStats(m.id);
+      html += `
+        <div class="card fade-up" style="animation-delay:${i*50}ms">
+          <div class="card-left">
+            <div class="avatar">${m.number ? '#'+m.number : m.name[0]}</div>
+            <div>
+              <div class="card-name">${esc(m.name)}</div>
+              <div class="card-meta">
+                ${m.position ? `<span class="pos-chip">${esc(m.position)}</span>` : ''}
+                ${st.total > 0 ? `<span style="color:${st.rate>=80?'var(--green)':st.rate>=50?'var(--yellow)':'var(--red)'};font-size:12px;font-weight:600">${st.rate}% (${st.present}/${st.total})</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <button class="btn-icon" onclick="requirePassword(() => confirmRemoveMember('${m.id}'))" title="Remove">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function showAddMember() {
+  document.getElementById("add-member-form").style.display = "block";
+  document.getElementById("inp-name").focus();
+}
+function doAddMember() {
+  const name = document.getElementById("inp-name").value.trim();
+  if (!name) return;
+  members.push({ id:uid(), name, number:document.getElementById("inp-num").value.trim(), position:document.getElementById("inp-pos").value.trim() });
+  save(); render();
+}
+function confirmRemoveMember(id) {
+  if (confirm("Remove this member from the roster?")) {
+    members = members.filter(m => m.id !== id);
+    Object.keys(records).forEach(pid => { delete records[pid][id]; });
+    save(); render();
+  }
+}
+
+// ─── PRACTICES ───
+function renderPractices() {
+  const el = document.getElementById("page-practices");
+  let html = `
+    <div class="sec-head">
+      <h2 class="sec-title">Practice Schedule</h2>
+      <button class="btn-accent" onclick="requirePassword(showAddPractice)">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14m-7-7h14"/></svg>
+        New Practice
+      </button>
+    </div>
+    <div id="add-practice-form" style="display:none" class="form-card fade-up">
+      <div class="form-row">
+        <input type="date" class="inp" id="inp-date" value="${todayStr()}">
+        <input class="inp" id="inp-note" placeholder="Note (optional)">
+        <button class="btn-green" onclick="doAddPractice()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+          Create
+        </button>
+      </div>
+    </div>
+  `;
+  if (practices.length === 0) {
+    html += `<div class="empty-state fade-up"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>No practices yet.</p></div>`;
+  } else {
+    html += `<div class="card-list">`;
+    practices.forEach((p,i) => {
+      const rec = getPracticeRecord(p.id);
+      html += `
+        <div class="card fade-up" style="animation-delay:${i*50}ms;${activePractice===p.id?'border-color:var(--accent);box-shadow:0 0 20px var(--accent-glow);':''}">
+          <div class="practice-click" onclick="requirePassword(() => selectPracticeAndCheckin('${p.id}'))">
+            <div class="date-box">${fmtShort(p.date)}</div>
+            <div>
+              <div class="card-name">${esc(p.note)}</div>
+              <div class="card-meta">
+                <span style="color:var(--muted);font-size:12px">${fmtDate(p.date)}</span>
+                ${rec.taken ? `<span class="badge-recorded">${rec.present.length}✓ / ${rec.absent.length}✗</span>` : `<span class="badge-pending">NOT CHECKED</span>`}
+              </div>
+            </div>
+          </div>
+          <button class="btn-icon" onclick="requirePassword(() => confirmRemovePractice('${p.id}'))" title="Delete">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function showAddPractice() {
+  document.getElementById("add-practice-form").style.display = "block";
+}
+function doAddPractice() {
+  const date = document.getElementById("inp-date").value;
+  if (!date) return;
+  const p = { id:uid(), date, note: document.getElementById("inp-note").value.trim() || "Mandatory Practice" };
+  practices.push(p);
+  practices.sort((a,b) => b.date.localeCompare(a.date));
+  activePractice = p.id;
+  checkedIn = {};
+  save(); goPage("checkin");
+}
+function selectPracticeAndCheckin(pid) {
+  activePractice = pid;
+  checkedIn = {};
+  goPage("checkin");
+}
+function confirmRemovePractice(id) {
+  if (confirm("Delete this practice and its attendance data?")) {
+    practices = practices.filter(p => p.id !== id);
+    delete records[id];
+    if (activePractice === id) activePractice = null;
+    save(); render();
+  }
+}
+
+// ─── CHECKIN ───
+function renderCheckin() {
+  const el = document.getElementById("page-checkin");
+  let html = `<div class="sec-head"><h2 class="sec-title">Practice Check-in</h2></div>`;
+
+  if (practices.length === 0) {
+    html += `<div class="empty-state fade-up"><p>Create a practice first.</p><button class="btn-accent" style="margin-top:8px" onclick="goPage('practices')">Go to Practices</button></div>`;
+    el.innerHTML = html; return;
+  }
+
+  html += `
+    <div class="sel-row">
+      <label class="sel-label">Practice:</label>
+      <select class="sel" id="sel-practice" onchange="onSelectPractice(this.value)">
+        <option value="">— Choose —</option>
+        ${practices.map(p => `<option value="${p.id}" ${activePractice===p.id?'selected':''}>${fmtShort(p.date)} — ${esc(p.note)}</option>`).join("")}
+      </select>
+    </div>
+  `;
+
+  if (!activePractice) {
+    html += `<div class="empty-state fade-up"><p>Select a practice above.</p></div>`;
+    el.innerHTML = html; return;
+  }
+
+  if (members.length === 0) {
+    html += `<div class="empty-state fade-up"><p>Add members to the roster first.</p><button class="btn-accent" style="margin-top:8px" onclick="goPage('roster')">Go to Roster</button></div>`;
+    el.innerHTML = html; return;
+  }
+
+  const existing = records[activePractice];
+  const alreadyTaken = existing && Object.keys(existing).length > 0;
+
+  if (alreadyTaken) {
+    const rec = getPracticeRecord(activePractice);
+    const practice = practices.find(p => p.id === activePractice);
+    html += `
+      <div class="lock-banner fade-up" style="border-color:#2d5040;background:rgba(52,211,153,0.05);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+        Attendance already recorded. Results shown below.
+      </div>
+    `;
+    html += renderSplitBlock(practice, rec);
+    html += `<button class="btn-accent" style="margin-top:14px" onclick="requirePassword(() => retakeCheckin('${activePractice}'))">Re-take Attendance</button>`;
+    el.innerHTML = html; return;
+  }
+
+  // Fresh check-in — password required
+  html += `
+    <div class="lock-banner">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Password required to submit attendance.
+    </div>
+    <p class="hint">Tap each member who is <strong style="color:var(--bright)">present</strong> at mandatory practice. Unchecked = <strong style="color:var(--red)">absent</strong>.</p>
+    <div class="card-list">
+  `;
+  members.forEach((m,i) => {
+    const ck = !!checkedIn[m.id];
+    html += `
+      <div class="check-row${ck?' checked':''} fade-up" style="animation-delay:${i*40}ms" onclick="toggleCheck('${m.id}')">
+        <div class="card-left">
+          <div class="check-box">${ck?'<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>':''}</div>
+          <div class="avatar">${m.number?'#'+m.number:m.name[0]}</div>
+          <div>
+            <div class="card-name">${esc(m.name)}</div>
+            ${m.position?`<span class="pos-chip">${esc(m.position)}</span>`:''}
+          </div>
+        </div>
+        <div class="check-status">${ck?'PRESENT':'—'}</div>
+      </div>`;
+  });
+  const presentCount = Object.values(checkedIn).filter(Boolean).length;
+  html += `</div>
+    <div class="submit-bar fade-up">
+      <div class="submit-info">
+        <span style="color:var(--green)">${presentCount}</span> present
+        <span style="margin:0 6px;color:#2e2641">|</span>
+        <span style="color:var(--red)">${members.length - presentCount}</span> absent
+      </div>
+      <button class="btn-submit" onclick="requirePassword(doSubmitCheckin)">Submit Attendance</button>
+    </div>`;
+
+  el.innerHTML = html;
+}
+
+function onSelectPractice(val) {
+  activePractice = val || null;
+  checkedIn = {};
+  render();
+}
+function toggleCheck(mid) {
+  checkedIn[mid] = !checkedIn[mid];
+  render();
+}
+function doSubmitCheckin() {
+  if (!activePractice) return;
+  const result = {};
+  members.forEach(m => { result[m.id] = checkedIn[m.id] ? "present" : "absent"; });
+  records[activePractice] = result;
+  save();
+  goPage("reports");
+}
+function retakeCheckin(pid) {
+  const old = records[pid] || {};
+  checkedIn = {};
+  members.forEach(m => { if (old[m.id] === "present") checkedIn[m.id] = true; });
+  delete records[pid];
+  save(); render();
+}
+
+// ─── REPORTS ───
+function renderReports() {
+  const el = document.getElementById("page-reports");
+  let html = `
+    <div class="sec-head">
+      <h2 class="sec-title">Attendance Reports</h2>
+      ${(members.length||practices.length) ? `<button class="btn-danger-sm" onclick="requirePassword(confirmResetAll)">Reset All</button>` : ''}
+    </div>
+  `;
+
+  if (!practices.length || !members.length) {
+    html += `<div class="empty-state fade-up"><p>No data yet. Add members and check in to a practice.</p></div>`;
+    el.innerHTML = html; return;
+  }
+
+  // Individual stats
+  html += `<div class="report-block fade-up"><div class="report-head"><span class="report-title">Individual Attendance</span></div><div class="stats-tbl">
+    <div class="stats-head"><span>Member</span><span>Present</span><span>Absent</span><span>Rate</span></div>`;
+  members.map(m => ({...m, st:getMemberStats(m.id)})).sort((a,b) => b.st.rate - a.st.rate).forEach((m,i) => {
+    const c = m.st.rate>=80?'var(--green)':m.st.rate>=50?'var(--yellow)':'var(--red)';
+    const bg = m.st.rate>=80?'#059669':m.st.rate>=50?'#d97706':'#e11d48';
+    html += `
+      <div class="stats-row fade-up" style="animation-delay:${i*40}ms">
+        <span>${m.number?`<span style="color:var(--muted);margin-right:5px">#${m.number}</span>`:''}${esc(m.name)}</span>
+        <span style="color:var(--green);font-weight:700">${m.st.present}</span>
+        <span style="color:var(--red);font-weight:700">${m.st.absent}</span>
+        <span><span class="bar-track"><span class="bar-fill" style="width:${m.st.rate}%;background:${bg}"></span></span><span class="rate-num" style="color:${c}">${m.st.rate}%</span></span>
+      </div>`;
+  });
+  html += `</div></div>`;
+
+  // Per-practice
+  html += `<h3 class="sub-heading">Practice-by-Practice</h3>`;
+  practices.forEach(p => {
+    const rec = getPracticeRecord(p.id);
+    if (!rec.taken) return;
+    html += renderSplitBlock(p, rec);
+  });
+
+  el.innerHTML = html;
+}
+
+function renderSplitBlock(practice, rec) {
+  let h = `<div class="report-block fade-up">
+    <div class="report-head">
+      <span class="report-title">${esc(practice.note)}</span>
+      <span class="report-date">${fmtDate(practice.date)}</span>
+    </div>
+    <div class="split-grid">
+      <div class="split-col">
+        <div class="split-header"><span class="split-dot" style="background:var(--green)"></span>ATTENDED (${rec.present.length})</div>
+        ${rec.present.length===0?'<p class="split-empty">None</p>':''}
+        ${rec.present.map(m => `
+          <div class="split-row"><span class="split-avatar">${m.number?'#'+m.number:m.name[0]}</span><span>${esc(m.name)}</span>${m.position?`<span class="mini-pos">${esc(m.position)}</span>`:''}</div>
+        `).join("")}
+      </div>
+      <div class="split-col">
+        <div class="split-header absent"><span class="split-dot" style="background:var(--red)"></span>ABSENT (${rec.absent.length})</div>
+        ${rec.absent.length===0?'<p class="split-empty">None</p>':''}
+        ${rec.absent.map(m => `
+          <div class="split-row absent-row"><span class="split-avatar absent-av">${m.number?'#'+m.number:m.name[0]}</span><span>${esc(m.name)}</span>${m.position?`<span class="mini-pos">${esc(m.position)}</span>`:''}</div>
+        `).join("")}
+      </div>
+    </div>
+  </div>`;
+  return h;
+}
+
+function confirmResetAll() {
+  if (confirm("Delete ALL members, practices, and attendance data? This cannot be undone.")) {
+    members=[]; practices=[]; records={};
+    activePractice=null; checkedIn={};
+    save(); render();
+  }
+}
+
+function esc(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+renderNav();
+render();
+</script>
+</body>
+</html>
