@@ -336,6 +336,7 @@ let currentPage = "roster";
 let activePractice = null;
 let checkedIn = {};
 let pendingAction = null; // callback after password success
+let isUnlocked = false; // stays true for the session once password entered
 
 const save = () => {
   localStorage.setItem("twi-members", JSON.stringify(members));
@@ -351,6 +352,8 @@ const todayStr = () => new Date().toISOString().split("T")[0];
 // PASSWORD GATE
 // ═══════════════════════════════════════════
 function requirePassword(action) {
+  // If already unlocked this session, run action immediately
+  if (isUnlocked) { action(); return; }
   pendingAction = action;
   document.getElementById("pw-modal").classList.add("show");
   const inp = document.getElementById("pw-input");
@@ -362,7 +365,9 @@ function requirePassword(action) {
 function submitPassword() {
   const inp = document.getElementById("pw-input");
   if (inp.value === TEAM_PASSWORD) {
+    isUnlocked = true;
     closePasswordModal();
+    updateLockUI();
     if (pendingAction) pendingAction();
     pendingAction = null;
   } else {
@@ -370,6 +375,33 @@ function submitPassword() {
     inp.value = "";
     inp.focus();
   }
+}
+
+function lockSession() {
+  isUnlocked = false;
+  updateLockUI();
+  render();
+}
+
+function updateLockUI() {
+  document.querySelectorAll(".lock-banner").forEach(el => {
+    if (isUnlocked) {
+      el.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+        <span style="flex:1">Session unlocked — you can make changes freely.</span>
+        <button class="btn-ghost-sm" onclick="lockSession()" style="margin-left:auto;font-size:11px;">Lock</button>
+      `;
+      el.style.borderColor = "#2d5040";
+      el.style.background = "rgba(52,211,153,0.05)";
+    } else {
+      el.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Only captain &amp; coach can edit. Password required for changes.
+      `;
+      el.style.borderColor = "";
+      el.style.background = "";
+    }
+  });
 }
 
 function closePasswordModal() {
@@ -435,6 +467,9 @@ function render() {
   else if (currentPage === "practices") renderPractices();
   else if (currentPage === "checkin") renderCheckin();
   else if (currentPage === "reports") renderReports();
+
+  // Update lock banners after DOM is rebuilt
+  setTimeout(updateLockUI, 0);
 }
 
 // ─── ROSTER ───
