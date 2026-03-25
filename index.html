@@ -903,23 +903,59 @@ function renderSplitBlock(practice, rec) {
       <span class="report-title">${esc(practice.note)}</span>
       <span class="report-date">${fmtDate(practice.date)}</span>
     </div>
-    <div class="split-grid">
+    <div class="split-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+      
+      <!-- PRESENT -->
       <div class="split-col">
-        <div class="split-header"><span class="split-dot" style="background:var(--green)"></span>ATTENDED (${rec.present.length})</div>
-        ${rec.present.length===0?'<p class="split-empty">None</p>':''}
+        <div class="split-header">
+          <span class="split-dot" style="background:var(--green)"></span>
+          ATTENDED (${rec.present.length})
+        </div>
+        ${rec.present.length === 0 ? '<p class="split-empty">None</p>' : ''}
         ${rec.present.map(m => `
-          <div class="split-row"><span class="split-avatar">${m.number?'#'+m.number:m.name[0]}</span><span>${esc(m.name)}</span>${m.position?`<span class="mini-pos">${esc(m.position)}</span>`:''}</div>
+          <div class="split-row">
+            <span class="split-avatar">${m.number ? '#' + m.number : m.name[0]}</span>
+            <span>${esc(m.name)}</span>
+            ${m.position ? `<span class="mini-pos">${esc(m.position)}</span>` : ''}
+          </div>
         `).join("")}
       </div>
+
+      <!-- EXCUSED -->
       <div class="split-col">
-        <div class="split-header absent"><span class="split-dot" style="background:var(--red)"></span>ABSENT (${rec.absent.length})</div>
-        ${rec.absent.length===0?'<p class="split-empty">None</p>':''}
-        ${rec.absent.map(m => `
-          <div class="split-row absent-row"><span class="split-avatar absent-av">${m.number?'#'+m.number:m.name[0]}</span><span>${esc(m.name)}</span>${m.position?`<span class="mini-pos">${esc(m.position)}</span>`:''}</div>
+        <div class="split-header" style="color:var(--yellow)">
+          <span class="split-dot" style="background:var(--yellow)"></span>
+          EXCUSED (${rec.excused.length})
+        </div>
+        ${rec.excused.length === 0 ? '<p class="split-empty">None</p>' : ''}
+        ${rec.excused.map(m => `
+          <div class="split-row" style="opacity:0.85">
+            <span class="split-avatar" style="background:#3a2a0a">${m.number ? '#' + m.number : m.name[0]}</span>
+            <span>${esc(m.name)}</span>
+            ${m.position ? `<span class="mini-pos">${esc(m.position)}</span>` : ''}
+          </div>
         `).join("")}
       </div>
+
+      <!-- ABSENT -->
+      <div class="split-col">
+        <div class="split-header absent">
+          <span class="split-dot" style="background:var(--red)"></span>
+          ABSENT (${rec.absent.length})
+        </div>
+        ${rec.absent.length === 0 ? '<p class="split-empty">None</p>' : ''}
+        ${rec.absent.map(m => `
+          <div class="split-row absent-row">
+            <span class="split-avatar absent-av">${m.number ? '#' + m.number : m.name[0]}</span>
+            <span>${esc(m.name)}</span>
+            ${m.position ? `<span class="mini-pos">${esc(m.position)}</span>` : ''}
+          </div>
+        `).join("")}
+      </div>
+
     </div>
   </div>`;
+
   return h;
 }
 
