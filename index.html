@@ -601,7 +601,7 @@ async function doAddMember() {
   const name = document.getElementById("inp-name").value.trim();
   if (!name) return;
 
-  await supabase.from("Members").insert([{
+  await supabase.from("members").insert([{
     name,
     number: document.getElementById("inp-num").value.trim(),
     position: document.getElementById("inp-pos").value.trim()
@@ -612,7 +612,7 @@ async function doAddMember() {
 }
 async function confirmRemoveMember(id) {
   if (confirm("Remove this member?")) {
-    await supabase.from("Members").delete().eq("id", id);
+    await supabase.from("members").delete().eq("id", id);
     await supabase.from("records").delete().eq("member_id", id);
 
     await loadAllData();
@@ -1005,7 +1005,7 @@ function renderSplitBlock(practice, rec) {
 
 async function confirmResetAll() {
   if (confirm("Delete ALL data?")) {
-    await supabase.from("Members").delete().neq("id", "");
+    await supabase.from("members").delete().neq("id", "");
     await supabase.from("practices").delete().neq("id", "");
     await supabase.from("records").delete().neq("id", "");
 
