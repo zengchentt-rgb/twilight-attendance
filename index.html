@@ -111,6 +111,7 @@
     background: none; border: none; color: #3e3556; cursor: pointer; border-radius: 8px;
   }
   .btn-icon:hover { color: var(--red); }
+  .btn-icon.edit:hover { color: var(--accent); }
   .btn-submit {
     padding: 14px 32px; background: linear-gradient(135deg, #a855f7, #7c3aed);
     color: #fff; border: none; border-radius: 14px; font-weight: 700; font-size: 15px;
@@ -318,6 +319,27 @@
   <div class="page" id="page-reports"></div>
 </div>
 
+<!-- EDIT MEMBER MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="margin-bottom:10px;">
+      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+    <h3>Edit Member</h3>
+    <p>Update player information below.</p>
+    <input class="inp" type="hidden" id="edit-member-id">
+    <input class="inp" id="edit-inp-name" placeholder="Full Name *" style="margin-bottom:10px;width:100%;text-align:left;letter-spacing:normal;font-size:14px;">
+    <div style="display:flex;gap:10;margin-bottom:14px;">
+      <input class="inp" id="edit-inp-num" placeholder="Jersey #" style="text-align:left;letter-spacing:normal;font-size:14px;">
+      <input class="inp" id="edit-inp-pos" placeholder="Position" style="text-align:left;letter-spacing:normal;font-size:14px;">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-ghost-sm" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-accent" onclick="doEditMember()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- PASSWORD MODAL -->
 <div class="modal-overlay" id="pw-modal">
   <div class="modal-box">
@@ -447,6 +469,13 @@ function closePasswordModal() {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("pw-input").addEventListener("keydown", e => {
     if (e.key === "Enter") submitPassword();
+  });
+
+  ["edit-inp-name","edit-inp-num","edit-inp-pos"].forEach(id => {
+    document.getElementById(id).addEventListener("keydown", e => {
+      if (e.key === "Enter") doEditMember();
+      if (e.key === "Escape") closeEditModal();
+    });
   });
 });
 
@@ -581,9 +610,14 @@ function renderRoster() {
               </div>
             </div>
           </div>
-          <button class="btn-icon" onclick="requirePassword(() => confirmRemoveMember('${m.id}'))" title="Remove">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          </button>
+          <div style="display:flex;gap:4;">
+            <button class="btn-icon edit" onclick="requirePassword(() => showEditMember('${m.id}'))" title="Edit">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-icon" onclick="requirePassword(() => confirmRemoveMember('${m.id}'))" title="Remove">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
         </div>`;
     });
     html += `</div>`;
@@ -608,6 +642,37 @@ async function doAddMember() {
   await loadAllData();
   render();
 }
+function showEditMember(id) {
+  const m = members.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById("edit-member-id").value = id;
+  document.getElementById("edit-inp-name").value = m.name || "";
+  document.getElementById("edit-inp-num").value = m.number || "";
+  document.getElementById("edit-inp-pos").value = m.position || "";
+  document.getElementById("edit-modal").classList.add("show");
+  setTimeout(() => document.getElementById("edit-inp-name").focus(), 100);
+}
+
+function closeEditModal() {
+  document.getElementById("edit-modal").classList.remove("show");
+}
+
+async function doEditMember() {
+  const id = document.getElementById("edit-member-id").value;
+  const name = document.getElementById("edit-inp-name").value.trim();
+  if (!name) return;
+
+  await db.from("members").update({
+    name,
+    number: document.getElementById("edit-inp-num").value.trim(),
+    position: document.getElementById("edit-inp-pos").value.trim()
+  }).eq("id", id);
+
+  closeEditModal();
+  await loadAllData();
+  render();
+}
+
 async function confirmRemoveMember(id) {
   if (confirm("Remove this member?")) {
     await supabase.from("members").delete().eq("id", id);
