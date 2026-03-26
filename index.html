@@ -633,7 +633,7 @@ async function doAddMember() {
   const name = document.getElementById("inp-name").value.trim();
   if (!name) return;
 
-  await supabase.from("members").insert([{
+  await db.from("members").insert([{
     name,
     number: document.getElementById("inp-num").value.trim(),
     position: document.getElementById("inp-pos").value.trim()
@@ -675,8 +675,8 @@ async function doEditMember() {
 
 async function confirmRemoveMember(id) {
   if (confirm("Remove this member?")) {
-    await supabase.from("members").delete().eq("id", id);
-    await supabase.from("records").delete().eq("member_id", id);
+    await db.from("members").delete().eq("id", id);
+    await db.from("records").delete().eq("member_id", id);
 
     await loadAllData();
     render();
@@ -740,7 +740,7 @@ async function doAddPractice() {
   const date = document.getElementById("inp-date").value;
   if (!date) return;
 
-  const { data } = await supabase.from("practices").insert([{
+  const { data } = await db.from("practices").insert([{
     date,
     note: document.getElementById("inp-note").value.trim() || "Practice"
   }]).select();
@@ -757,8 +757,8 @@ function selectPracticeAndCheckin(pid) {
 }
 async function confirmRemovePractice(id) {
   if (confirm("Delete this practice?")) {
-    await supabase.from("practices").delete().eq("id", id);
-    await supabase.from("records").delete().eq("practice_id", id);
+    await db.from("practices").delete().eq("id", id);
+    await db.from("records").delete().eq("practice_id", id);
 
     await loadAllData();
     render();
@@ -900,7 +900,7 @@ function toggleCheck(mid) {
 async function doSubmitCheckin() {
   if (!activePractice) return;
 
-  await supabase
+  await db
     .from("records")
     .delete()
     .eq("practice_id", activePractice);
@@ -911,7 +911,7 @@ async function doSubmitCheckin() {
     status: checkedIn[m.id] || "absent"
   }));
 
-  await supabase.from("records").insert(rows);
+  await db.from("records").insert(rows);
 
   await loadAllData();
   goPage("reports");
@@ -924,7 +924,7 @@ async function retakeCheckin(pid) {
     checkedIn[r.member_id] = r.status;
   });
 
-  await supabase
+  await db
     .from("records")
     .delete()
     .eq("practice_id", pid);
@@ -1068,9 +1068,9 @@ function renderSplitBlock(practice, rec) {
 
 async function confirmResetAll() {
   if (confirm("Delete ALL data?")) {
-    await supabase.from("members").delete().neq("id", "");
-    await supabase.from("practices").delete().neq("id", "");
-    await supabase.from("records").delete().neq("id", "");
+    await db.from("members").delete().neq("id", "");
+    await db.from("practices").delete().neq("id", "");
+    await db.from("records").delete().neq("id", "");
 
     await loadAllData();
     render();
