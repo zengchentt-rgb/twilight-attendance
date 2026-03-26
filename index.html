@@ -336,13 +336,15 @@
 </div>
 
 <script>
-let supabase;
 
 document.addEventListener("DOMContentLoaded", () => {
-  supabase = window.supabase.createClient(
+  const client = supabase.createClient(
     "https://wbuggumtpabuuztkfqga.supabase.co",
     "你的key"
   );
+  
+    // 👇 关键：把 client 赋值回全局 supabase
+  window.supabase = client;
   
   renderNav();
   loadAllData().then(render);
