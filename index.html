@@ -366,7 +366,7 @@ const todayStr = () => new Date().toISOString().split("T")[0];
 
 async function loadAllData() {
   const { data: m } = await supabase
-  .from("Members")
+  .from("members")
   .select("*")
   .order("name", { ascending: true });
 
