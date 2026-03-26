@@ -337,18 +337,17 @@
 
 <script>
 
-document.addEventListener("DOMContentLoaded", () => {
-  const client = supabase.createClient(
-    "https://wbuggumtpabuuztkfqga.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndidWdndW10cGFidXV6dGtmcWdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTMyMTMsImV4cCI6MjA5MDA2OTIxM30.vstOpm8gpjuEWhkJo_NdtuRQLX7qjRY438GbHeDEbr8"
-  );
+  document.addEventListener("DOMContentLoaded", () => {
+    // Use a different name to avoid re-declaring the global `supabase`
+    window.db = supabase.createClient(
+      "https://wbuggumtpabuuztkfqga.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndidWdndW10cGFidXV6dGtmcWdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTMyMTMsImV4cCI6MjA5MDA2OTIxM30.vstOpm8gpjuEWhkJo_NdtuRQLX7qjRY438GbHeDEbr8"
+    );
   
-    // 👇 关键：把 client 赋值回全局 supabase
-  window.supabase = client;
+    renderNav();
+    loadAllData().then(render);
+  });
   
-  renderNav();
-  loadAllData().then(render);
-});
   
 let members = [];
 let practices = [];
@@ -374,19 +373,9 @@ const fmtShort = d => new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:
 const todayStr = () => new Date().toISOString().split("T")[0];
 
 async function loadAllData() {
-  const { data: m } = await supabase
-  .from("members")
-  .select("*")
-  .order("name", { ascending: true });
-
-const { data: p } = await supabase
-  .from("practices")
-  .select("*")
-  .order("date", { ascending: false }); // 最新的在前面
-
-const { data: r } = await supabase
-  .from("records")
-  .select("*");
+  const { data: m } = await db.from("members").select("*").order("name", { ascending: true });
+  const { data: p } = await db.from("practices").select("*").order("date", { ascending: false });
+  const { data: r } = await db.from("records").select("*");
 
   members = m || [];
   practices = p || [];
