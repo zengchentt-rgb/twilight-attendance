@@ -336,10 +336,17 @@
 </div>
 
 <script>
-const supabase = window.supabase.createClient(
-  "https://wbuggumtpabuuztkfqga.supabase.co",
-  "sb_publishable_xCa0IyqMic27BgIwY2MXXw_owyv1Mv3"
-);
+let supabase;
+
+document.addEventListener("DOMContentLoaded", () => {
+  supabase = window.supabase.createClient(
+    "https://wbuggumtpabuuztkfqga.supabase.co",
+    "你的key"
+  );
+  
+  renderNav();
+  loadAllData().then(render);
+});
   
 let members = [];
 let practices = [];
@@ -1023,8 +1030,6 @@ function esc(s) {
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
-renderNav();
-loadAllData().then(render);
 </script>
 </body>
 </html>
