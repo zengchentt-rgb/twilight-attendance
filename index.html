@@ -335,6 +335,14 @@
 </div>
 
 <script>
+const supabase = window.supabase.createClient(
+  "https://wbuggumtpabuuztkfqga.supabase.co",
+  "sb_publishable_xCa0IyqMic27BgIwY2MXXw_owyv1Mv3"
+);
+  
+let members = [];
+let practices = [];
+let records = [];
 // ═══════════════════════════════════════════
 // CONFIG — CHANGE THIS PASSWORD
 // ═══════════════════════════════════════════
@@ -343,9 +351,6 @@ const TEAM_PASSWORD = "twilight2026";
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-let members = JSON.parse(localStorage.getItem("twi-members") || "[]");
-let practices = JSON.parse(localStorage.getItem("twi-practices") || "[]");
-let records = JSON.parse(localStorage.getItem("twi-records") || "{}");
 
 let currentPage = "roster";
 let activePractice = null;
@@ -353,15 +358,30 @@ let checkedIn = {};
 let pendingAction = null; // callback after password success
 let isUnlocked = false; // stays true for the session once password entered
 
-const save = () => {
-  localStorage.setItem("twi-members", JSON.stringify(members));
-  localStorage.setItem("twi-practices", JSON.stringify(practices));
-  localStorage.setItem("twi-records", JSON.stringify(records));
-};
 const uid = () => Math.random().toString(36).slice(2, 10);
 const fmtDate = d => new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
 const fmtShort = d => new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
 const todayStr = () => new Date().toISOString().split("T")[0];
+
+async function loadAllData() {
+  const { data: m } = await supabase
+  .from("Members")
+  .select("*")
+  .order("name", { ascending: true });
+
+const { data: p } = await supabase
+  .from("practices")
+  .select("*")
+  .order("date", { ascending: false }); // 最新的在前面
+
+const { data: r } = await supabase
+  .from("records")
+  .select("*");
+
+  members = m || [];
+  practices = p || [];
+  records = r || [];
+}
 
 // ═══════════════════════════════════════════
 // PASSWORD GATE
@@ -460,44 +480,43 @@ function goPage(k) {
 // STATS HELPERS
 // ═══════════════════════════════════════════
 function getMemberStats(id) {
-  let present = 0;
-  let absent = 0;
-  let excused = 0;
-  let total = 0;
+  const recs = records.filter(r => r.member_id === id);
 
-  Object.values(records).forEach(r => {
-    const status = r[id];
-    if (!status) return;
+  let present = 0, absent = 0, excused = 0;
 
-    total++;
-
-    if (status === "present") present++;
-    else if (status === "absent") absent++;
-    else if (status === "excused") excused++;
+  recs.forEach(r => {
+    if (r.status === "present") present++;
+    else if (r.status === "excused") excused++;
+    else absent++;
   });
 
+  const total = recs.length;
   const rate = total ? Math.round((present / total) * 100) : 0;
 
   return { present, absent, excused, total, rate };
 }
 
 function getPracticeRecord(pid) {
-  const r = records[pid] || {};
+  const recs = records.filter(r => r.practice_id === pid);
+
   const present = [];
   const absent = [];
   const excused = [];
 
-  members.forEach(m => {
-    if (r[m.id] === "present") present.push(m);
-    else if (r[m.id] === "absent") absent.push(m);
-    else if (r[m.id] === "excused") excused.push(m);
+  recs.forEach(r => {
+    const m = members.find(x => x.id === r.member_id);
+    if (!m) return;
+
+    if (r.status === "present") present.push(m);
+    else if (r.status === "excused") excused.push(m);
+    else absent.push(m);
   });
 
   return {
     present,
     absent,
     excused,
-    taken: Object.keys(r).length > 0
+    taken: recs.length > 0
   };
 }
 
@@ -577,17 +596,26 @@ function showAddMember() {
   document.getElementById("add-member-form").style.display = "block";
   document.getElementById("inp-name").focus();
 }
-function doAddMember() {
+async function doAddMember() {
   const name = document.getElementById("inp-name").value.trim();
   if (!name) return;
-  members.push({ id:uid(), name, number:document.getElementById("inp-num").value.trim(), position:document.getElementById("inp-pos").value.trim() });
-  save(); render();
+
+  await supabase.from("Members").insert([{
+    name,
+    number: document.getElementById("inp-num").value.trim(),
+    position: document.getElementById("inp-pos").value.trim()
+  }]);
+
+  await loadAllData();
+  render();
 }
-function confirmRemoveMember(id) {
-  if (confirm("Remove this member from the roster?")) {
-    members = members.filter(m => m.id !== id);
-    Object.keys(records).forEach(pid => { delete records[pid][id]; });
-    save(); render();
+async function confirmRemoveMember(id) {
+  if (confirm("Remove this member?")) {
+    await supabase.from("Members").delete().eq("id", id);
+    await supabase.from("records").delete().eq("member_id", id);
+
+    await loadAllData();
+    render();
   }
 }
 
@@ -644,27 +672,32 @@ function renderPractices() {
 function showAddPractice() {
   document.getElementById("add-practice-form").style.display = "block";
 }
-function doAddPractice() {
+async function doAddPractice() {
   const date = document.getElementById("inp-date").value;
   if (!date) return;
-  const p = { id:uid(), date, note: document.getElementById("inp-note").value.trim() || "Mandatory Practice" };
-  practices.push(p);
-  practices.sort((a,b) => b.date.localeCompare(a.date));
-  activePractice = p.id;
-  checkedIn = {};
-  save(); goPage("checkin");
+
+  const { data } = await supabase.from("practices").insert([{
+    date,
+    note: document.getElementById("inp-note").value.trim() || "Practice"
+  }]).select();
+
+  activePractice = data[0].id;
+
+  await loadAllData();
+  goPage("checkin");
 }
 function selectPracticeAndCheckin(pid) {
   activePractice = pid;
   checkedIn = {};
   goPage("checkin");
 }
-function confirmRemovePractice(id) {
-  if (confirm("Delete this practice and its attendance data?")) {
-    practices = practices.filter(p => p.id !== id);
-    delete records[id];
-    if (activePractice === id) activePractice = null;
-    save(); render();
+async function confirmRemovePractice(id) {
+  if (confirm("Delete this practice?")) {
+    await supabase.from("practices").delete().eq("id", id);
+    await supabase.from("records").delete().eq("practice_id", id);
+
+    await loadAllData();
+    render();
   }
 }
 
@@ -701,8 +734,8 @@ function renderCheckin() {
     return;
   }
 
-  const existing = records[activePractice];
-  const alreadyTaken = existing && Object.keys(existing).length > 0;
+  const existing = records.filter(r => r.practice_id === activePractice);
+  const alreadyTaken = existing.length > 0;
 
   if (alreadyTaken) {
     const rec = getPracticeRecord(activePractice);
@@ -800,29 +833,39 @@ function toggleCheck(mid) {
 
   render();
 }
-function doSubmitCheckin() {
+async function doSubmitCheckin() {
   if (!activePractice) return;
 
-  const result = {};
+  await supabase
+    .from("records")
+    .delete()
+    .eq("practice_id", activePractice);
 
-  members.forEach(m => {
-    result[m.id] = checkedIn[m.id] || "absent";
-  });
+  const rows = members.map(m => ({
+    practice_id: activePractice,
+    member_id: m.id,
+    status: checkedIn[m.id] || "absent"
+  }));
 
-  records[activePractice] = result;
-  save();
+  await supabase.from("records").insert(rows);
+
+  await loadAllData();
   goPage("reports");
 }
-function retakeCheckin(pid) {
-  const old = records[pid] || {};
-  checkedIn = {};
+async function retakeCheckin(pid) {
+  const old = records.filter(r => r.practice_id === pid);
 
-  members.forEach(m => {
-    checkedIn[m.id] = old[m.id] || "absent";
+  checkedIn = {};
+  old.forEach(r => {
+    checkedIn[r.member_id] = r.status;
   });
 
-  delete records[pid];
-  save();
+  await supabase
+    .from("records")
+    .delete()
+    .eq("practice_id", pid);
+
+  await loadAllData();
   render();
 }
 
@@ -959,11 +1002,14 @@ function renderSplitBlock(practice, rec) {
   return h;
 }
 
-function confirmResetAll() {
-  if (confirm("Delete ALL members, practices, and attendance data? This cannot be undone.")) {
-    members=[]; practices=[]; records={};
-    activePractice=null; checkedIn={};
-    save(); render();
+async function confirmResetAll() {
+  if (confirm("Delete ALL data?")) {
+    await supabase.from("Members").delete().neq("id", "");
+    await supabase.from("practices").delete().neq("id", "");
+    await supabase.from("records").delete().neq("id", "");
+
+    await loadAllData();
+    render();
   }
 }
 
@@ -977,7 +1023,7 @@ function esc(s) {
 // INIT
 // ═══════════════════════════════════════════
 renderNav();
-render();
+loadAllData().then(render);
 </script>
 </body>
 </html>
